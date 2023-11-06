@@ -13,11 +13,9 @@ class Neuron:
     weights: [float]
     bias: float
 
-    def compute_output(self, inputs: [float]):
-        current_sum = 0
-        for (input, weight) in zip(inputs, self.weights):
-            current_sum += input * weight
-        return relu(current_sum + self.bias)
+    def compute_output(self, inputs: [float]) -> float:
+        # TODO: Fill this in!
+        return 0.0
 
 
 def forward_pass_single_layer(input: [float], layer: [Neuron]) -> [float]:
@@ -55,13 +53,6 @@ demo_network: [[Neuron]] = \
         ],
     ]
 
-
-# Technically RELU doesn't have a derivative at 0, but this is generally ignored
-def relu_derivative(x: float) -> float:
-    if x < 0:
-        return 0
-    else:
-        return 1
 
 
 def main() -> None:

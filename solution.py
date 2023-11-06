@@ -13,7 +13,7 @@ class Neuron:
     weights: [float]
     bias: float
 
-    def compute_output(self, inputs: [float]):
+    def compute_output(self, inputs: [float]) -> float:
         current_sum = 0
         for (input, weight) in zip(inputs, self.weights):
             current_sum += input * weight
@@ -54,14 +54,6 @@ demo_network: [[Neuron]] = \
             Neuron(weights=[-0.15, 0.1], bias=-0.1),
         ],
     ]
-
-
-# Technically RELU doesn't have a derivative at 0, but this is generally ignored
-def relu_derivative(x: float) -> float:
-    if x < 0:
-        return 0
-    else:
-        return 1
 
 
 def main() -> None:
