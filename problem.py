@@ -313,19 +313,31 @@ def initialize_new_three_layer_net() -> ThreeLayerNeuralNet:
     """
     Initialize our 
     """
+    # Since we have ReLU that clamps values to 0, having an initial set of
+    # weights that are all 0 can sometimes cause gradients to be stuck at 0 and
+    # never move. So we generally want to inject a little bit of randomness when
+    # initializing and move weights just a little bit away from 0.
+    #
+    # We also can't have these bounds be too big! Otherwise again ReLU may bite
+    # us and clamp us down to 0 if there's a sign change somewhere.
+    #
+    # This particular bound was chosen semi-randomly (I kind of pulled it out of
+    # a hat and verified that it worked). You'll see later a slightly more
+    # principled/standard way of choosing this bound.
+    initial_bound = 1 / 20
     with t.no_grad():
         neural_net = ThreeLayerNeuralNet(
             # We're going to use usual matrix order of dimensions here That is
             # for a matrix mxn, that means we have n-dimensional input and
             # m-dimensional output, so likewise here (300, 784) means
             # 784-dimensional input and 300-dimensional output
-            layer_0 = t.zeros((2000, 784), requires_grad=True).uniform_(-20, 20),
-            layer_0_bias = t.zeros(2000, requires_grad=True).uniform_(-20, 20),
+            layer_0 = t.zeros((2000, 784), requires_grad=True).uniform_(-initial_bound, initial_bound),
+            layer_0_bias = t.zeros(2000, requires_grad=True).uniform_(-initial_bound, initial_bound),
             # TODO: Finish implementing 
-            layer_1 = t.zeros((400, 2000), requires_grad=True).uniform_(-20, 20),
-            layer_1_bias = t.zeros(400, requires_grad=True).uniform_(-20, 20),
-            layer_2 = t.zeros((10, 400), requires_grad=True).uniform_(-20, 20),
-            layer_2_bias = t.zeros(10, requires_grad=True).uniform_(-20, 20),
+            layer_1 = t.zeros((400, 2000), requires_grad=True).uniform_(-initial_bound, initial_bound),
+            layer_1_bias = t.zeros(400, requires_grad=True).uniform_(-initial_bound, initial_bound),
+            layer_2 = t.zeros((10, 400), requires_grad=True).uniform_(-initial_bound, initial_bound),
+            layer_2_bias = t.zeros(10, requires_grad=True).uniform_(-initial_bound, initial_bound),
         )
         return neural_net
 
@@ -334,18 +346,9 @@ new_neural_net = initialize_new_three_layer_net()
 
 # %%
 
-def sigmoid(x: t.Tensor) -> t.Tensor:
-    """
-    A sigmoid function. Look at the equation in the documentation for
-    https://pytorch.org/docs/stable/generated/torch.nn.Sigmoid.html
-    """
-    # TODO: Fill this in!
-    return 1 / (1 + t.exp(-x))
-
-
 def forward(x: t.Tensor, neural_net: ThreeLayerNeuralNet) -> t.Tensor:
+    # TODO: Fill in the first two layers of this!
     after_layer_0 = t.nn.functional.relu(apply_linear_function_to_input(neural_net.layer_0, x) + neural_net.layer_0_bias)
-    # TODO: Fill in the rest of this!
     after_layer_1 = t.nn.functional.relu(apply_linear_function_to_input(neural_net.layer_1, after_layer_0) + neural_net.layer_1_bias)
     after_layer_2 = t.nn.functional.softmax(apply_linear_function_to_input(neural_net.layer_2, after_layer_1) + neural_net.layer_2_bias, dim=-1)
     return after_layer_2
@@ -458,17 +461,6 @@ inputs[1:2]
 # %%
 
 forward(inputs, new_neural_net)
-
-# %%
-
-# train(
-#     neural_net=new_neural_net,
-#     inputs=inputs,
-#     expected_outputs=expected_outputs,
-#     # A learning rate of 2 is usually much too high, but we've made some sub-optimal choices in designing our 
-#     learning_rate=2,
-#     number_of_iterations=1000,
-# )
 
 
 # %%
