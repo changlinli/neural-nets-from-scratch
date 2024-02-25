@@ -1,2 +1,5 @@
 .idea
 .venv
+
+# This folder contains datasets that are going to get downloaded
+data
