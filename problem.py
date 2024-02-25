@@ -100,8 +100,11 @@ import torch as t
 
 # %%
 
-# Here's an example of using PyTorch to automatically calculate a derivative for you.
-
+# Here's an example of using PyTorch to automatically calculate a derivative for
+# you. When we are manually creating tensors, we have to explicitly tell PyTorch
+# to remember we want to calculate the gradient for this tensor, so we should
+# pass in requires_grad=True. As we use PyTorch more and more, we'll see a lot
+# of library calls that will automatically take care of this for us.
 x = t.tensor([5.0], requires_grad=True)
 
 # Derivative here is 2x + 1, so that should be a derivative of 11 for x = 5
@@ -121,6 +124,8 @@ a = t.tensor([5.0], requires_grad=True)
 b = t.tensor([3.0], requires_grad=True)
 
 c = a ** 2 + b ** 2
+
+# %%
 
 # Use PyTorch to calculate what dc/da is and what dc/db are.
 
@@ -149,6 +154,80 @@ c = (a_and_b ** 2).sum()
 dc_da = None
 
 dc_db = None
+
+# %%
+
+# Note that gradients accumulate!
+
+some_input = t.tensor([1.0], requires_grad=True)
+
+some_output = 10 * some_input
+
+some_output.backward()
+
+# Normally because this is just y = 10 * x, we would expect the x's gradient to be 10 at this point
+
+print(f"{some_input.grad=}")
+
+# %%
+
+# PyTorch is smart enough to warn us if we try to use backward again
+
+try:
+    some_output.backward()
+except RuntimeError as e:
+    print(f"PyTorch was smart enough to blow up and prevent us from going backward again with the following message:\n{str(e)}")
+
+# %%
+
+# But PyTorch doesn't warn us if we create a new output reuses `some_input` and
+# instead will just keep adding more gradients to the pre-existing gradient.
+# This is known as "accumulating gradients," and there are reasons you might
+# want to do this, but for our purposes, this is undesirable, as it will give us
+# the wrong derivatives/gradients.
+
+another_output = 5 * some_input
+
+another_output.backward()
+
+# Note that we've added two derivatives together, 10 + 5, which is not the
+# correct derivative for y = 10 * x or y = 5 * x!
+assert some_input.grad == 15
+
+print(f"{some_input.grad=}")
+
+# %%
+
+# Because PyTorch will either throw an error on a given backwards call, or it'll
+# accumulate gradients when you potentially don't want that to happen, we
+# generally will want to reset gradients between calls to backward(). The
+# easiest way to do this is to set `.grad = None`. We'll see later how to do
+# this in a less manual fashion.
+
+some_input.grad = None
+
+yet_another_output = 5 * some_input
+
+yet_another_output.backward()
+
+# This time we get the correct gradient!
+assert some_input.grad == 5
+
+# %%
+
+# Note that even after resetting a gradient, we still can't call backward again
+# on the same output. This has to do with the details of how PyTorch
+# automatically calculates derivatives. The exact details of why this is the
+# case are irrelevant at the moment (although they may become more apparent when
+# we implement backpropagation ourselves), but feel free to ask if you're
+# curious.
+
+some_input.grad = None
+
+try:
+    yet_another_output.backward()
+except RuntimeError as e:
+    print(f"Yep we still get the following error message:\n{str(e)}")
 
 # %%
 
@@ -227,18 +306,22 @@ class ThreeLayerNeuralNet:
     layer_2_bias: t.Tensor
 
 def initialize_new_three_layer_net() -> ThreeLayerNeuralNet:
+    """
+    Initialize our 
+    """
     with t.no_grad():
         neural_net = ThreeLayerNeuralNet(
             # We're going to use usual matrix order of dimensions here That is
             # for a matrix mxn, that means we have n-dimensional input and
             # m-dimensional output, so likewise here (300, 96) means
             # 96-dimensional input and 300-dimensional output
-            layer_0 = t.zeros((300, 96), requires_grad=True).uniform_(-0.01, 0.01),
-            layer_0_bias = t.zeros(300, requires_grad=True).uniform_(-0.01, 0.01),
-            layer_1 = t.zeros((400, 300), requires_grad=True).uniform_(-0.01, 0.01),
-            layer_1_bias = t.zeros(400, requires_grad=True).uniform_(-0.01, 0.01),
-            layer_2 = t.zeros((10, 400), requires_grad=True).uniform_(-0.01, 0.01),
-            layer_2_bias = t.zeros(10, requires_grad=True).uniform_(-0.01, 0.01),
+            layer_0 = t.zeros((300, 96), requires_grad=True).uniform_(-1, 1),
+            layer_0_bias = t.zeros(300, requires_grad=True).uniform_(-1, 1),
+            # TODO: Finish implementing 
+            layer_1 = t.zeros((400, 300), requires_grad=True).uniform_(-1, 1),
+            layer_1_bias = t.zeros(400, requires_grad=True).uniform_(-1, 1),
+            layer_2 = t.zeros((10, 400), requires_grad=True).uniform_(-1, 1),
+            layer_2_bias = t.zeros(10, requires_grad=True).uniform_(-1, 1),
         )
         return neural_net
 
@@ -257,19 +340,11 @@ def sigmoid(x: t.Tensor) -> t.Tensor:
 
 
 def forward(x: t.Tensor, neural_net: ThreeLayerNeuralNet) -> t.Tensor:
-    # Use t.nn.functional.sigmoid instead of the previous relu to make sure that
-    # we have something that works with PyTorch tensors and has both positive
-    # and negative values
-    after_layer_0 = apply_linear_function_to_input(neural_net.layer_0, x)
-    # print(f"{after_layer_0=}")
-    after_layer_1 = apply_linear_function_to_input(neural_net.layer_1, after_layer_0)
-    # print(f"{after_layer_1=}")
-    after_layer_2 = apply_linear_function_to_input(neural_net.layer_2, after_layer_1)
-    # print(f"{after_layer_2=}")
+    after_layer_0 = sigmoid(apply_linear_function_to_input(neural_net.layer_0, x) + neural_net.layer_0_bias)
+    # TODO: Fill in the rest of this!
+    after_layer_1 = sigmoid(apply_linear_function_to_input(neural_net.layer_1, after_layer_0) + neural_net.layer_1_bias)
+    after_layer_2 = sigmoid(apply_linear_function_to_input(neural_net.layer_2, after_layer_1) + neural_net.layer_2_bias)
     return after_layer_2
-    print(f"{apply_linear_function_to_input(neural_net.layer_0, x)[..., :10]=}")
-    print(f"{t.nn.functional.sigmoid(apply_linear_function_to_input(neural_net.layer_0, x))[..., :10]=}")
-    return apply_linear_function_to_input(neural_net.layer_0, x)[..., :10]
 
 # %%
 
@@ -277,46 +352,55 @@ example_output = forward(neural_net=new_neural_net, x=t.ones((10, 96)))
 
 # %%
 
-example_scalar = example_output.sum()
+# Note that generally speaking we'll mainly be using scalar (i.e. 0-dimensional
+# tensor) outputs that we call .backward() on. This is not too much of a
+# limitation because almost always a loss function will output a scalar. There
+# are ways to deal with non-scalar outputs, but it's irrelevant to us at the
+# moment and for now we'll just point out that trying to do so will cause an
+# error.
+try:
+    # example_output is not a scalar!
+    example_output.backward()
+except RuntimeError as e:
+    print(f"Weren't able to calculate a gradient because of:\n{str(e)}")
 
 # %%
+
+# Notice now that we've turned example_output into a scalar, our call to
+# .backward() proceeds with no problem!
+example_scalar = example_output.sum()
 
 example_scalar.backward()
 
 # %%
 
-new_neural_net.layer_0.grad
+# And we can calculate the gradient of one of our neural net layers relative to
+# this scalar!
+
+print(f"{new_neural_net.layer_0.grad=}")
 
 # %%
-
 
 def zero_all_gradients(neural_net: ThreeLayerNeuralNet) -> None:
     neural_net.layer_0.grad = None
     neural_net.layer_0_bias.grad = None
+    # TODO: Finish implementing this for all the other layers in our neural net
     neural_net.layer_1.grad = None
     neural_net.layer_1_bias.grad = None
     neural_net.layer_2.grad = None
     neural_net.layer_2_bias.grad = None
 
 
-example_0 = forward(t.rand((100, 96)), new_neural_net)
-print(f"{example_0.shape=}")
-
-
 def loss_function(expected_outputs: t.Tensor, actual_outputs: t.Tensor) -> t.Tensor:
     # TODO: Implement this
-    # print(f"{expected_outputs.shape=}")
-    # print(f"{actual_outputs.shape=}")
     result = ((expected_outputs - actual_outputs) ** 2).mean()
-    print(f"{result=}")
     return result
 
 
 
 def nudge_tensor_towards_minimum(x: t.Tensor, learning_rate: float) -> None:
-    # TODO: Implement this
     with t.no_grad():
-        # print(f"{x.grad=}")
+        # TODO: Implement this
         x -= x.grad * learning_rate
 
 
@@ -335,18 +419,12 @@ def tune_weights_once(
         actual_outputs=outputs,
     )
     loss.backward()
-    print(f"Internal loss: {loss=}")
-    print(f"{neural_net.layer_0.grad=}")
-    print(f"{neural_net.layer_2.grad=}")
-    # with t.no_grad():
-    #     neural_net.layer_0 -= neural_net.layer_0.grad * learning_rate
-    # print(f"{neural_net.layer_0=}")
     nudge_tensor_towards_minimum(neural_net.layer_0, learning_rate)
-    # nudge_tensor_towards_minimum(neural_net.layer_0_bias, learning_rate)
+    nudge_tensor_towards_minimum(neural_net.layer_0_bias, learning_rate)
     nudge_tensor_towards_minimum(neural_net.layer_1, learning_rate)
-    # nudge_tensor_towards_minimum(neural_net.layer_1_bias, learning_rate)
+    nudge_tensor_towards_minimum(neural_net.layer_1_bias, learning_rate)
     nudge_tensor_towards_minimum(neural_net.layer_2, learning_rate)
-    # nudge_tensor_towards_minimum(neural_net.layer_2_bias, learning_rate)
+    nudge_tensor_towards_minimum(neural_net.layer_2_bias, learning_rate)
 
 # %%
 from tqdm import tqdm
@@ -363,15 +441,28 @@ def train(
         tune_weights_once(neural_net, inputs, expected_outputs, learning_rate)
     print(f"Final loss was {loss_function(expected_outputs=expected_outputs, actual_outputs=forward(x=inputs, neural_net=neural_net))}")
 
+# %%
+
 inputs = t.rand((100, 96))
-expected_outputs = t.randint(0, 10, (100, 10))
+expected_outputs = t.rand((100, 10))
+
+# %%
+
+inputs[1:2]
+
+# %%
+
+forward(inputs, new_neural_net)
+
+# %%
 
 train(
     neural_net=new_neural_net,
     inputs=inputs,
     expected_outputs=expected_outputs,
-    learning_rate=0.01,
-    number_of_iterations=100,
+    # A learning rate of 2 is usually much too high, but we've made some sub-optimal choices in designing our 
+    learning_rate=2,
+    number_of_iterations=1000,
 )
 
 # %%
