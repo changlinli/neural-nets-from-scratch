@@ -337,12 +337,7 @@ new_neural_net = initialize_new_three_layer_net()
 
 # %%
 
-list(t.nn.Linear(in_features=784, out_features=2000).parameters())[0]
-
-# %%
-
-with t.no_grad():
-    print(f"{t.zeros((784, 2000)).uniform_(1 / -784 ** 0.5, 1 / 784 ** 0.5)}")
+list(t.nn.Linear(in_features=784, out_features=2000).parameters())[0].shape
 
 # %%
 
