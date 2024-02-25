@@ -319,13 +319,13 @@ def initialize_new_three_layer_net() -> ThreeLayerNeuralNet:
             # for a matrix mxn, that means we have n-dimensional input and
             # m-dimensional output, so likewise here (300, 784) means
             # 784-dimensional input and 300-dimensional output
-            layer_0 = t.zeros((2000, 784), requires_grad=True).uniform_(-1, 1),
-            layer_0_bias = t.zeros(2000, requires_grad=True).uniform_(-1, 1),
+            layer_0 = t.zeros((2000, 784), requires_grad=True).uniform_(-20, 20),
+            layer_0_bias = t.zeros(2000, requires_grad=True).uniform_(-20, 20),
             # TODO: Finish implementing 
-            layer_1 = t.zeros((400, 2000), requires_grad=True).uniform_(-1, 1),
-            layer_1_bias = t.zeros(400, requires_grad=True).uniform_(-1, 1),
-            layer_2 = t.zeros((10, 400), requires_grad=True).uniform_(-1, 1),
-            layer_2_bias = t.zeros(10, requires_grad=True).uniform_(-1, 1),
+            layer_1 = t.zeros((400, 2000), requires_grad=True).uniform_(-20, 20),
+            layer_1_bias = t.zeros(400, requires_grad=True).uniform_(-20, 20),
+            layer_2 = t.zeros((10, 400), requires_grad=True).uniform_(-20, 20),
+            layer_2_bias = t.zeros(10, requires_grad=True).uniform_(-20, 20),
         )
         return neural_net
 
@@ -344,9 +344,9 @@ def sigmoid(x: t.Tensor) -> t.Tensor:
 
 
 def forward(x: t.Tensor, neural_net: ThreeLayerNeuralNet) -> t.Tensor:
-    after_layer_0 = t.nn.functional.leaky_relu(apply_linear_function_to_input(neural_net.layer_0, x) + neural_net.layer_0_bias)
+    after_layer_0 = t.nn.functional.relu(apply_linear_function_to_input(neural_net.layer_0, x) + neural_net.layer_0_bias)
     # TODO: Fill in the rest of this!
-    after_layer_1 = t.nn.functional.leaky_relu(apply_linear_function_to_input(neural_net.layer_1, after_layer_0) + neural_net.layer_1_bias)
+    after_layer_1 = t.nn.functional.relu(apply_linear_function_to_input(neural_net.layer_1, after_layer_0) + neural_net.layer_1_bias)
     after_layer_2 = t.nn.functional.softmax(apply_linear_function_to_input(neural_net.layer_2, after_layer_1) + neural_net.layer_2_bias, dim=-1)
     return after_layer_2
 
@@ -538,8 +538,8 @@ train(
     inputs=training_imgs,
     expected_outputs=expected_outputs_in_training,
     # A learning rate of 2 is usually much too high, but we've made some sub-optimal choices in designing our 
-    learning_rate=1,
-    number_of_iterations=10,
+    learning_rate=10,
+    number_of_iterations=100,
 )
 
 # %%
@@ -569,7 +569,7 @@ class SimpleNeuralNet(t.nn.Module):
 
 
 def train(model: SimpleNeuralNet, epochs: int, lr: int):
-    optimizer = t.optim.AdamW(model.parameters(), lr=lr)
+    optimizer = t.optim.SGD(model.parameters(), lr=lr)
     for epoch in tqdm(range(epochs)):
         output = model(training_imgs)
         # For those who are confused why we use MSE loss here for a
@@ -587,7 +587,7 @@ model = SimpleNeuralNet()
 
 # %%
 
-train(model, epochs=100, lr=0.001)
+train(model, epochs=100, lr=10)
 
 # %%
 
