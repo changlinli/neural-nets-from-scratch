@@ -130,12 +130,14 @@ c = a ** 2 + b ** 2
 # Use PyTorch to calculate what dc/da is and what dc/db are.
 
 # TODO: Fill in the Nones!
+# Remember to first populate the gradients before calling .grad!
+c.backward()
 
-dc_da = None
+dc_da = a.grad
 
 assert_with_expect(expected=t.tensor(10.0), actual=dc_da)
 
-dc_db = None
+dc_db = b.grad
 
 assert_with_expect(expected=t.tensor(6.0), actual=dc_db)
 
@@ -150,10 +152,12 @@ c = (a_and_b ** 2).sum()
 # Use PyTorch to calculate again what dc/da and what dc/db are
 
 # TODO: Fill in the Nones!
+# Remember to first populate the gradients before calling .grad!
+c.backward()
 
-dc_da = None
+dc_da = a_and_b.grad[0]
 
-dc_db = None
+dc_db = a_and_b.grad[1]
 
 # %%
 
@@ -313,12 +317,12 @@ def initialize_new_three_layer_net() -> ThreeLayerNeuralNet:
         neural_net = ThreeLayerNeuralNet(
             # We're going to use usual matrix order of dimensions here That is
             # for a matrix mxn, that means we have n-dimensional input and
-            # m-dimensional output, so likewise here (300, 96) means
-            # 96-dimensional input and 300-dimensional output
-            layer_0 = t.zeros((300, 96), requires_grad=True).uniform_(-1, 1),
-            layer_0_bias = t.zeros(300, requires_grad=True).uniform_(-1, 1),
+            # m-dimensional output, so likewise here (300, 784) means
+            # 784-dimensional input and 300-dimensional output
+            layer_0 = t.zeros((2000, 784), requires_grad=True).uniform_(-1, 1),
+            layer_0_bias = t.zeros(2000, requires_grad=True).uniform_(-1, 1),
             # TODO: Finish implementing 
-            layer_1 = t.zeros((400, 300), requires_grad=True).uniform_(-1, 1),
+            layer_1 = t.zeros((400, 2000), requires_grad=True).uniform_(-1, 1),
             layer_1_bias = t.zeros(400, requires_grad=True).uniform_(-1, 1),
             layer_2 = t.zeros((10, 400), requires_grad=True).uniform_(-1, 1),
             layer_2_bias = t.zeros(10, requires_grad=True).uniform_(-1, 1),
@@ -340,15 +344,15 @@ def sigmoid(x: t.Tensor) -> t.Tensor:
 
 
 def forward(x: t.Tensor, neural_net: ThreeLayerNeuralNet) -> t.Tensor:
-    after_layer_0 = sigmoid(apply_linear_function_to_input(neural_net.layer_0, x) + neural_net.layer_0_bias)
+    after_layer_0 = t.nn.functional.leaky_relu(apply_linear_function_to_input(neural_net.layer_0, x) + neural_net.layer_0_bias)
     # TODO: Fill in the rest of this!
-    after_layer_1 = sigmoid(apply_linear_function_to_input(neural_net.layer_1, after_layer_0) + neural_net.layer_1_bias)
-    after_layer_2 = sigmoid(apply_linear_function_to_input(neural_net.layer_2, after_layer_1) + neural_net.layer_2_bias)
+    after_layer_1 = t.nn.functional.leaky_relu(apply_linear_function_to_input(neural_net.layer_1, after_layer_0) + neural_net.layer_1_bias)
+    after_layer_2 = t.nn.functional.softmax(apply_linear_function_to_input(neural_net.layer_2, after_layer_1) + neural_net.layer_2_bias, dim=-1)
     return after_layer_2
 
 # %%
 
-example_output = forward(neural_net=new_neural_net, x=t.ones((10, 96)))
+example_output = forward(neural_net=new_neural_net, x=t.ones((10, 784)))
 
 # %%
 
@@ -377,6 +381,7 @@ example_scalar.backward()
 # And we can calculate the gradient of one of our neural net layers relative to
 # this scalar!
 
+print(f"{new_neural_net.layer_0=}")
 print(f"{new_neural_net.layer_0.grad=}")
 
 # %%
@@ -443,7 +448,7 @@ def train(
 
 # %%
 
-inputs = t.rand((100, 96))
+inputs = t.rand((100, 784))
 expected_outputs = t.rand((100, 10))
 
 # %%
@@ -456,18 +461,182 @@ forward(inputs, new_neural_net)
 
 # %%
 
+# train(
+#     neural_net=new_neural_net,
+#     inputs=inputs,
+#     expected_outputs=expected_outputs,
+#     # A learning rate of 2 is usually much too high, but we've made some sub-optimal choices in designing our 
+#     learning_rate=2,
+#     number_of_iterations=1000,
+# )
+
+
+# %%
+import matplotlib.pyplot as plt
+from torchvision.datasets import MNIST
+from torchvision.transforms import ToTensor
+
+# %%
+
+dataset = MNIST(root="data", download=True, transform=ToTensor())
+
+# %%
+
+# %%
+
+img, label = dataset[0]
+
+print(f"This image is meant to express this numeral: {label}")
+plt.imshow(img.squeeze())
+
+# %%
+
+def one_hot_encoding(i: int, num_classes: int) -> t.Tensor:
+    # TODO: Implement this!
+    result = t.zeros([num_classes])
+    result[i] = 1
+    return result
+
+
+def make_img_1d(imgs: t.Tensor) -> t.Tensor:
+    # TODO: Implement this!
+    return einops.rearrange(imgs, '... h w -> ... (h w)')
+
+
+# %%
+
+# This is an inefficient way of using
+training_imgs = []
+expected_outputs = []
+counter = 0
+for img, label in dataset:
+    if counter > 1_000:
+        break
+    training_imgs.append(make_img_1d(img).squeeze())
+    expected_outputs.append(one_hot_encoding(label, num_classes=10))
+    counter += 1
+
+training_imgs = t.stack(training_imgs)
+expected_outputs = t.stack(expected_outputs)
+
+# %%
+
+print(f"{training_imgs.shape=}")
+
+# %%
+
 train(
     neural_net=new_neural_net,
-    inputs=inputs,
+    inputs=training_imgs,
     expected_outputs=expected_outputs,
     # A learning rate of 2 is usually much too high, but we've made some sub-optimal choices in designing our 
-    learning_rate=2,
-    number_of_iterations=1000,
+    learning_rate=1,
+    number_of_iterations=10,
 )
 
 # %%
 
-print(f"{new_neural_net=}")
+expected_outputs[1]
+
+# %%
+print(f"{forward(training_imgs[100:101], new_neural_net)=}")
+print(f"{expected_outputs[100:101]}")
 
 # %%
 
+class SimpleNeuralNet(t.nn.Module):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.implementation = t.nn.Sequential(
+            t.nn.Linear(in_features=784, out_features=2000),
+            t.nn.LeakyReLU(),
+            t.nn.Linear(in_features=2000, out_features=400),
+            t.nn.LeakyReLU(),
+            t.nn.Linear(in_features=400, out_features=10),
+            t.nn.Softmax(dim=-1),
+        )
+
+    def forward(self, t: t.Tensor):
+        return self.implementation(t)
+
+
+def train(model: SimpleNeuralNet, epochs: int, lr: int):
+    optimizer = t.optim.AdamW(model.parameters(), lr=lr)
+    for epoch in tqdm(range(epochs)):
+        output = model(training_imgs)
+        loss = t.nn.functional.mse_loss(output, expected_outputs)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        if epoch == 0:
+            print(f"Initial loss: {loss=}")
+        elif epoch == epochs - 1:
+            print(f"Final loss: {loss=}")
+
+model = SimpleNeuralNet()
+
+# %%
+
+train(model, epochs=100, lr=0.001)
+
+# %%
+print(f"{list(model.parameters())[0].grad=}")
+
+# %%
+
+print(f"{model(training_imgs[100:101])=}")
+print(f"{expected_outputs[100:101]}")
+
+
+# %%
+import argparse
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torchvision import datasets, transforms
+from torch.optim.lr_scheduler import StepLR
+
+
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.conv1 = nn.Conv2d(1, 32, 3, 1)
+        self.conv2 = nn.Conv2d(32, 64, 3, 1)
+        self.dropout1 = nn.Dropout(0.25)
+        self.dropout2 = nn.Dropout(0.5)
+        self.fc1 = nn.Linear(9216, 128)
+        self.fc2 = nn.Linear(128, 10)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = F.relu(x)
+        x = self.conv2(x)
+        x = F.relu(x)
+        x = F.max_pool2d(x, 2)
+        x = self.dropout1(x)
+        x = torch.flatten(x, 1)
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.dropout2(x)
+        x = self.fc2(x)
+        output = F.log_softmax(x, dim=1)
+        return output
+
+training_images_blown_out = einops.rearrange(training_imgs, '... (h w) -> ... h w', h=28)
+
+def train(model, device, train_loader, optimizer, iterations):
+    model.train()
+    for _ in range(iterations):
+        data, target = training_imgs, expected_outputs
+        optimizer.zero_grad()
+        output = model(data)
+        loss = F.nll_loss(output, target)
+        loss.backward()
+        optimizer.step()
+
+# %%
+model = Net()
+
+# %%
+train(model, None, None, t.optim.AdamW(model.parameters(), lr=0.01), 100)
