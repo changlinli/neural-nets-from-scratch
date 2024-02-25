@@ -557,9 +557,9 @@ class SimpleNeuralNet(t.nn.Module):
         super().__init__(*args, **kwargs)
         self.implementation = t.nn.Sequential(
             t.nn.Linear(in_features=784, out_features=2000),
-            t.nn.LeakyReLU(),
+            t.nn.ReLU(),
             t.nn.Linear(in_features=2000, out_features=400),
-            t.nn.LeakyReLU(),
+            t.nn.ReLU(),
             t.nn.Linear(in_features=400, out_features=10),
             t.nn.Softmax(dim=-1),
         )
