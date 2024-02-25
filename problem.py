@@ -16,7 +16,8 @@ def relu(x: float) -> float:
     # TODO: Fill this in!
     return max(x, 0.0)
 
-assert relu(5.0)
+assert_with_expect(actual=relu(5.0), expected=5.0)
+assert_with_expect(actual=relu(-5.0), expected=0.0)
 
 # %%
 from dataclasses import dataclass
@@ -313,35 +314,39 @@ def initialize_new_three_layer_net() -> ThreeLayerNeuralNet:
     """
     Initialize our 
     """
+    layer_0_linear, layer_0_linear_bias = list(t.nn.Linear(in_features=784, out_features=2000).parameters())
+    layer_1_linear, layer_1_linear_bias = list(t.nn.Linear(in_features=2000, out_features=400).parameters())
+    layer_2_linear, layer_2_linear_bias = list(t.nn.Linear(in_features=400, out_features=10).parameters())
     with t.no_grad():
         neural_net = ThreeLayerNeuralNet(
-            # We're going to use usual matrix order of dimensions here That is
-            # for a matrix mxn, that means we have n-dimensional input and
-            # m-dimensional output, so likewise here (300, 784) means
-            # 784-dimensional input and 300-dimensional output
-            layer_0 = t.zeros((2000, 784), requires_grad=True).uniform_(-20, 20),
-            layer_0_bias = t.zeros(2000, requires_grad=True).uniform_(-20, 20),
+            # We're going to use usual matrix order of dimensions here. That is
+            # for a matrix with dimensions m x n, that means we have
+            # n-dimensional input and m-dimensional output, so likewise here
+            # (300, 784) means 784-dimensional input and 300-dimensional output
+            layer_0 = layer_0_linear,
+            layer_0_bias = layer_0_linear_bias,
             # TODO: Finish implementing 
-            layer_1 = t.zeros((400, 2000), requires_grad=True).uniform_(-20, 20),
-            layer_1_bias = t.zeros(400, requires_grad=True).uniform_(-20, 20),
-            layer_2 = t.zeros((10, 400), requires_grad=True).uniform_(-20, 20),
-            layer_2_bias = t.zeros(10, requires_grad=True).uniform_(-20, 20),
+            layer_1 = layer_1_linear,
+            layer_1_bias = layer_1_linear_bias,
+            layer_2 = layer_2_linear,
+            layer_2_bias = layer_2_linear_bias,
         )
         return neural_net
-
 
 new_neural_net = initialize_new_three_layer_net()
 
 # %%
 
-def sigmoid(x: t.Tensor) -> t.Tensor:
-    """
-    A sigmoid function. Look at the equation in the documentation for
-    https://pytorch.org/docs/stable/generated/torch.nn.Sigmoid.html
-    """
-    # TODO: Fill this in!
-    return 1 / (1 + t.exp(-x))
+list(t.nn.Linear(in_features=784, out_features=2000).parameters())[0].shape
 
+# %%
+
+apply_linear_function_to_input(
+    t.tensor([[1.0, 0.0], [1.0, 2.0]]),
+    t.tensor([[1.5, 2.3], [1.2, 1.2], [5.4, -2.0]]),
+)
+
+# %%
 
 def forward(x: t.Tensor, neural_net: ThreeLayerNeuralNet) -> t.Tensor:
     after_layer_0 = t.nn.functional.relu(apply_linear_function_to_input(neural_net.layer_0, x) + neural_net.layer_0_bias)
@@ -349,6 +354,26 @@ def forward(x: t.Tensor, neural_net: ThreeLayerNeuralNet) -> t.Tensor:
     after_layer_1 = t.nn.functional.relu(apply_linear_function_to_input(neural_net.layer_1, after_layer_0) + neural_net.layer_1_bias)
     after_layer_2 = t.nn.functional.softmax(apply_linear_function_to_input(neural_net.layer_2, after_layer_1) + neural_net.layer_2_bias, dim=-1)
     return after_layer_2
+
+# %%
+
+def initialize_tiny_three_layer_net() -> ThreeLayerNeuralNet:
+    with t.no_grad():
+        neural_net = ThreeLayerNeuralNet(
+            # We're going to use usual matrix order of dimensions here That is
+            # for a matrix mxn, that means we have n-dimensional input and
+            # m-dimensional output, so likewise here (300, 784) means
+            # 784-dimensional input and 300-dimensional output
+            layer_0 = t.zeros((2, 2), requires_grad=True).uniform_(-2 ** 0.5, 2 ** 0.5),
+            layer_0_bias = t.zeros(2, requires_grad=True).uniform_(-2 ** 0.5, 2 ** 0.5),
+            # TODO: Finish implementing 
+            layer_1 = t.zeros((2, 2), requires_grad=True).uniform_(-2 ** 0.5, 2 ** 0.5),
+            layer_1_bias = t.zeros(2, requires_grad=True).uniform_(-2 ** 0.5, 2 ** 0.5),
+            layer_2 = t.zeros((2, 2), requires_grad=True).uniform_(-2 ** 0.5, 2 ** 0.5),
+            layer_2_bias = t.zeros(2, requires_grad=True).uniform_(-2 ** 0.5, 2 ** 0.5),
+        )
+        return neural_net
+
 
 # %%
 
@@ -434,7 +459,7 @@ def tune_weights_once(
 # %%
 from tqdm import tqdm
 
-def train(
+def train_custom_neural_net(
     neural_net: ThreeLayerNeuralNet,
     inputs: t.Tensor,
     expected_outputs: t.Tensor,
@@ -456,19 +481,48 @@ expected_outputs_in_training = t.rand((100, 10))
 inputs[1:2]
 
 # %%
+new_neural_net = initialize_new_three_layer_net()
 
-forward(inputs, new_neural_net)
+nn_output = forward(inputs, new_neural_net)
+
+loss = loss_function(expected_outputs=expected_outputs_in_training, actual_outputs=nn_output)
+
+loss.backward()
+
+print(f"{new_neural_net.layer_0.grad=}")
 
 # %%
 
-# train(
-#     neural_net=new_neural_net,
-#     inputs=inputs,
-#     expected_outputs=expected_outputs,
-#     # A learning rate of 2 is usually much too high, but we've made some sub-optimal choices in designing our 
-#     learning_rate=2,
-#     number_of_iterations=1000,
-# )
+tiny_neural_net = initialize_tiny_three_layer_net()
+
+output = forward(t.rand((2, 2)), tiny_neural_net)
+
+
+output_loss = loss_function(output, t.rand((2, 2)))
+
+output_loss.backward()
+
+print(f"{tiny_neural_net.layer_0.grad=}")
+print(f"{tiny_neural_net.layer_1.grad=}")
+print(f"{tiny_neural_net.layer_2.grad=}")
+print(f"{tiny_neural_net.layer_0_bias.grad=}")
+print(f"{tiny_neural_net.layer_1_bias.grad=}")
+print(f"{tiny_neural_net.layer_2_bias.grad=}")
+
+# %%
+
+with t.no_grad():
+    tiny_neural_net_layer_0 = t.zeros((1, 1), requires_grad=True).uniform_(-2 ** 0.5, 2 ** 0.5)
+    tiny_neural_net_layer_0_bias = t.zeros(1, requires_grad=True).uniform_(-2 ** 0.5, 2 ** 0.5)
+
+output = t.nn.functional.relu(apply_linear_function_to_input(tiny_neural_net_layer_0, t.tensor([[1.0], [3.2]])) + tiny_neural_net_layer_0_bias)
+
+output_loss = loss_function(output, t.tensor([[2.1], [5.2]]))
+
+output_loss.backward()
+
+print(f"{tiny_neural_net_layer_0.grad=}")
+
 
 
 # %%
@@ -533,7 +587,7 @@ print(f"{training_imgs.shape=}")
 
 # %%
 
-train(
+train_custom_neural_net(
     neural_net=new_neural_net,
     inputs=training_imgs,
     expected_outputs=expected_outputs_in_training,
@@ -556,11 +610,11 @@ class SimpleNeuralNet(t.nn.Module):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.implementation = t.nn.Sequential(
-            t.nn.Linear(in_features=784, out_features=2000),
+            t.nn.Linear(in_features=784, out_features=2000, bias=True),
             t.nn.ReLU(),
-            t.nn.Linear(in_features=2000, out_features=400),
+            t.nn.Linear(in_features=2000, out_features=400, bias=True),
             t.nn.ReLU(),
-            t.nn.Linear(in_features=400, out_features=10),
+            t.nn.Linear(in_features=400, out_features=10, bias=True),
             t.nn.Softmax(dim=-1),
         )
 
