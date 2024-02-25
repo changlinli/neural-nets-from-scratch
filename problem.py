@@ -449,7 +449,7 @@ def train(
 # %%
 
 inputs = t.rand((100, 784))
-expected_outputs = t.rand((100, 10))
+expected_outputs_in_training = t.rand((100, 10))
 
 # %%
 
@@ -507,17 +507,25 @@ def make_img_1d(imgs: t.Tensor) -> t.Tensor:
 
 # This is an inefficient way of using
 training_imgs = []
-expected_outputs = []
+expected_outputs_in_training = []
+non_training_imgs = []
+expected_outputs_in_non_training = []
 counter = 0
+total_imgs = 2000
+num_of_training_imgs = 1000
 for img, label in dataset:
-    if counter > 1_000:
+    if counter >= total_imgs:
         break
-    training_imgs.append(make_img_1d(img).squeeze())
-    expected_outputs.append(one_hot_encoding(label, num_classes=10))
+    if counter < num_of_training_imgs:
+        training_imgs.append(make_img_1d(img).squeeze())
+        expected_outputs_in_training.append(one_hot_encoding(label, num_classes=10))
+    else:
+        non_training_imgs.append(make_img_1d(img).squeeze())
+        expected_outputs_in_non_training.append(one_hot_encoding(label, num_classes=10))
     counter += 1
 
 training_imgs = t.stack(training_imgs)
-expected_outputs = t.stack(expected_outputs)
+expected_outputs_in_training = t.stack(expected_outputs_in_training)
 
 # %%
 
@@ -528,7 +536,7 @@ print(f"{training_imgs.shape=}")
 train(
     neural_net=new_neural_net,
     inputs=training_imgs,
-    expected_outputs=expected_outputs,
+    expected_outputs=expected_outputs_in_training,
     # A learning rate of 2 is usually much too high, but we've made some sub-optimal choices in designing our 
     learning_rate=1,
     number_of_iterations=10,
@@ -536,11 +544,11 @@ train(
 
 # %%
 
-expected_outputs[1]
+expected_outputs_in_training[1]
 
 # %%
 print(f"{forward(training_imgs[100:101], new_neural_net)=}")
-print(f"{expected_outputs[100:101]}")
+print(f"{expected_outputs_in_training[100:101]}")
 
 # %%
 
@@ -564,7 +572,9 @@ def train(model: SimpleNeuralNet, epochs: int, lr: int):
     optimizer = t.optim.AdamW(model.parameters(), lr=lr)
     for epoch in tqdm(range(epochs)):
         output = model(training_imgs)
-        loss = t.nn.functional.mse_loss(output, expected_outputs)
+        # For those who are confused why we use MSE loss here for a
+        # classification task, see https://arxiv.org/abs/2006.07322
+        loss = t.nn.functional.mse_loss(output, expected_outputs_in_training)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -580,63 +590,17 @@ model = SimpleNeuralNet()
 train(model, epochs=100, lr=0.001)
 
 # %%
-print(f"{list(model.parameters())[0].grad=}")
 
-# %%
+# Let's look at an image that wasn't part of the training data
 
-print(f"{model(training_imgs[100:101])=}")
-print(f"{expected_outputs[100:101]}")
+non_training_img_idx = 0
+img_outside_of_training_dataset = non_training_imgs[non_training_img_idx]
+label = expected_outputs_in_non_training[non_training_img_idx].argmax()
 
+print(f"Expected label: {label}")
+plt.imshow(einops.rearrange(img_outside_of_training_dataset, '(h w) -> h w', h=28))
 
-# %%
-import argparse
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torchvision import datasets, transforms
-from torch.optim.lr_scheduler import StepLR
+model_all_guesses = model(img_outside_of_training_dataset)
+model_guess_highest_prob = model(img_outside_of_training_dataset).argmax()
 
-
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(9216, 128)
-        self.fc2 = nn.Linear(128, 10)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(x)
-        x = self.conv2(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
-
-training_images_blown_out = einops.rearrange(training_imgs, '... (h w) -> ... h w', h=28)
-
-def train(model, device, train_loader, optimizer, iterations):
-    model.train()
-    for _ in range(iterations):
-        data, target = training_imgs, expected_outputs
-        optimizer.zero_grad()
-        output = model(data)
-        loss = F.nll_loss(output, target)
-        loss.backward()
-        optimizer.step()
-
-# %%
-model = Net()
-
-# %%
-train(model, None, None, t.optim.AdamW(model.parameters(), lr=0.01), 100)
+print(f"Model guessed this was: {model_guess_highest_prob}")
