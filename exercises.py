@@ -1,4 +1,5 @@
 # %%
+import torch as t
 
 # Some nice preliminary functions for testing.
 
