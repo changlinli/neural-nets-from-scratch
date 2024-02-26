@@ -125,7 +125,7 @@ def forward_pass_network(initial_inputs: list[float], layers: list[list[Neuron]]
     return last_output
 
 
-# The following is an example of a neural net that takes in three inputs and has
+# The following is an example of a neural net that takes in two inputs and has
 # two outputs, and has three layers: 3 neurons, 2 neurons, and 2 neurons
 # Notice that:
 #   1. Because we take in two inputs, the first layer of neurons all have two weights
