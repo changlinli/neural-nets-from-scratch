@@ -84,10 +84,7 @@ class Neuron:
         """
         assert len(inputs) == len(self.weights)
         # TODO: Fill this in!
-        result = 0
-        for weight, input in zip(self.weights, inputs):
-            result += weight * input
-        return relu(result + self.bias)
+        raise NotImplementedError()
 
 test_neuron = Neuron(weights=[1, 2], bias=0.5)
 assert_with_expect(actual=test_neuron.compute_output([2, 3]), expected=8.5)
@@ -103,7 +100,7 @@ def forward_pass_single_layer(input: list[float], layer: list[Neuron]) -> list[f
     for neuron in layer:
         assert len(neuron.weights) == len(input)
     # TODO: Fill this in!
-    return [neuron.compute_output(input) for neuron in layer]
+    raise NotImplementedError()
 
 test_layer = [
     Neuron(weights=[0.1, 0.2], bias=0.3),
