@@ -557,11 +557,7 @@ assert_tensors_within_epsilon(
 
 def forward(x: Float[t.Tensor, "batch d_input"], neural_net: ThreeLayerNeuralNet) -> Float[t.Tensor, "batch d_output"]:
     # TODO: Fill in the first two layers of this!
-    after_layer_0 = None
-    after_layer_1 = None
-    # Instead of doing a ReLU at the very end, we're going to use softmax
-    after_layer_2 = t.nn.functional.softmax(apply_linear_function_to_input(neural_net.layer_2, after_layer_1) + neural_net.layer_2_bias, dim=-1)
-    return after_layer_2
+    raise NotImplementedError()
 
 # %%
 
