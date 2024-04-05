@@ -175,6 +175,7 @@ assert_list_of_floats_within_epsilon(
 # reimplement PyTorch's autodifferentiation feature.
 
 def backpropagation(network: list[list[Neuron]]):
+    # Don't worry about implementing this
     raise NotImplementedError("This is too tedious to implement.")
 
 
