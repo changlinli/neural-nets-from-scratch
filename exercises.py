@@ -1,4 +1,7 @@
 # %%
+
+# Need this for some of the helper functions
+
 import torch as t
 
 # Some nice preliminary functions for testing.
@@ -180,6 +183,9 @@ def backpropagation(network: list[list[Neuron]]):
 
 import torch as t
 from jaxtyping import Float
+
+# Just to make sure our results are reproducible
+t.manual_seed(10)
 
 # %%
 
