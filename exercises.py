@@ -354,36 +354,32 @@ except RuntimeError as e:
 
 import numpy as np
 
-def generate_one_thousand_points() -> Float[t.Tensor, "1000 2"]:
-    return t.rand(1000, 2, requires_grad=True)
+one_thousand_random_points: Float[t.Tensor, "1000 2"] = t.rand(1000, 2, requires_grad=True)
 
-
-assert generate_one_thousand_points().requires_grad
+assert one_thousand_random_points.requires_grad
 
 # Using `generate_one_thousand_points`, call $f(x_i, y_i) = \sum_{0 <= i < 1000} x_i^2 + y_i^2$, (notice that
 # the thousand points are all (x, y) pairs because the second dimension is 2).
 
-def x_squared_plus_y_squared_plus_5_thousand_times() -> tuple[np.ndarray, np.ndarray]:
+def gradient_of_x_squared_plus_y_squared_plus_5_thousand_times() -> np.ndarray:
     """
-    Usually a Tensor will contain both its value and its gradient, here we want
-    you to manually separate the two and return them as NumPy arrays (which do
-    not have gradients built int).
+    Usually a Tensor will calculate its gradient as another Tensor, but here
+    we'll return a NumPy array.
 
     We will calculate this for the function $f(x_i, y_i) = \sum_{0 <= i < 1000} x_i^2 + y_i^2$
 
-    So the first element of this tuple should be a 1000x2 NumPy array containing
-    just the original points created from `generate_one_thousand_points()` and
-    the second element should be a 1000x2 NumPy array containing the associated
-    gradient.
+    You should use `generate_one_thousand_points()` to generate the 1000 points
+    and then should ultimately return a 1000x2 NumPy array, representing 1000
+    different gradients.
 
     Note to turn a PyTorch tensor into a NumPy array, call the .detach().numpy() method
     on a tensor.
     """
-    points = generate_one_thousand_points()
+    points = one_thousand_random_points
     # TODO: Implement this
     raise NotImplementedError()
 
-print(f"{x_squared_plus_y_squared_plus_5_thousand_times()=}")
+print(f"{gradient_of_x_squared_plus_y_squared_plus_5_thousand_times()=}")
 
 
 # %%
