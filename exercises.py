@@ -358,7 +358,7 @@ one_thousand_random_points: Float[t.Tensor, "1000 2"] = t.rand(1000, 2, requires
 
 assert one_thousand_random_points.requires_grad
 
-# Using `generate_one_thousand_points`, call $f(x_i, y_i) = \sum_{0 <= i < 1000} x_i^2 + y_i^2$, (notice that
+# Using `one_thousand_random_points`, call $f(x_i, y_i) = \sum_{0 <= i < 1000} x_i^2 + y_i^2$, (notice that
 # the thousand points are all (x, y) pairs because the second dimension is 2).
 
 def gradient_of_x_squared_plus_y_squared_plus_5_thousand_times() -> np.ndarray:
@@ -368,7 +368,7 @@ def gradient_of_x_squared_plus_y_squared_plus_5_thousand_times() -> np.ndarray:
 
     We will calculate this for the function $f(x_i, y_i) = \sum_{0 <= i < 1000} x_i^2 + y_i^2$
 
-    You should use `generate_one_thousand_points()` to generate the 1000 points
+    You should use `one_thousand_random_points` to generate the 1000 points
     and then should ultimately return a 1000x2 NumPy array, representing 1000
     different gradients.
 
