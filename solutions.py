@@ -376,8 +376,7 @@ def gradient_of_x_squared_plus_y_squared_plus_5_thousand_times() -> np.ndarray:
     We will calculate this for the function $f(x_i, y_i) = \sum_{0 <= i < 1000} x_i^2 + y_i^2$
 
     You should use `one_thousand_random_points` to generate the 1000 points
-    and then should ultimately return a 1000x2 NumPy array, representing 1000
-    different gradients.
+    and then should ultimately return a 1000x2 NumPy array, representing a gradient of size 1000x2.
 
     Note to turn a PyTorch tensor into a NumPy array, call the .detach().numpy() method
     on a tensor.
