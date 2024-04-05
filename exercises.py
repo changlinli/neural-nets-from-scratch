@@ -639,6 +639,15 @@ def nudge_tensor_towards_minimum(x: t.Tensor, learning_rate: float) -> None:
         # TODO: Implement this
         raise NotImplementedError()
 
+
+example_tensor = t.tensor([1.1, 2.2, 3.3])
+example_tensor.grad = t.tensor([0.1, 0.1, 0.1])
+nudge_tensor_towards_minimum(example_tensor, learning_rate=2)
+assert not t.allclose(example_tensor, t.tensor([1.1, 2.2, 3.3])), \
+    f"It doesn't appear that nudge_tensor_towards_minimum actually modifies your tensor! Make sure that you are using -= and not x = x - ..."
+assert_tensors_within_epsilon(expected=t.tensor([0.9, 2.0, 3.1]), actual=example_tensor)
+# %%
+
 # Finally we put all this together in a function that performs one iteration of
 # tuning the weights of neural nets in training.
 #
