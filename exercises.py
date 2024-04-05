@@ -378,7 +378,10 @@ def gradient_of_x_squared_plus_y_squared_plus_5_thousand_times() -> np.ndarray:
     # TODO: Implement this
     raise NotImplementedError()
 
-print(f"{gradient_of_x_squared_plus_y_squared_plus_5_thousand_times()=}")
+result = gradient_of_x_squared_plus_y_squared_plus_5_thousand_times()
+print(f"{result=}")
+assert_with_expect(expected=one_thousand_random_points[0][0] * 2, actual=result[0][0])
+assert_with_expect(expected=one_thousand_random_points[1][1] * 2, actual=result[1][1])
 
 
 # %%
