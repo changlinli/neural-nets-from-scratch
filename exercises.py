@@ -60,7 +60,8 @@ def relu(x: float) -> float:
     # TODO: Fill this in!
     raise NotImplementedError()
 
-assert relu(5.0)
+assert_with_expect(expected=5.0, actual=relu(5.0))
+assert_with_expect(expected=0.0, actual=relu(-1.0))
 
 # %%
 from dataclasses import dataclass
@@ -870,3 +871,13 @@ model_all_guesses = model(img_outside_of_training_dataset)
 model_guess_highest_prob = model(img_outside_of_training_dataset).argmax()
 
 print(f"Model guessed this was: {model_guess_highest_prob}")
+
+# %%
+
+# As a bonus exercise try to make your model display what image it thinks is the
+# "most like an 8." That is try to figure out some way of creating an image that
+# the model returns a very high value for in the 7th index of its output.
+
+# I'm going to let you try to figure this one out without as much handholding!
+# As a hint, think about whether you can use gradient descent (or perhaps
+# ascent!) on something that isn't the model weights.

@@ -60,7 +60,8 @@ def relu(x: float) -> float:
     # TODO: Fill this in!
     return max(x, 0.0)
 
-assert relu(5.0)
+assert_with_expect(expected=5.0, actual=relu(5.0))
+assert_with_expect(expected=0.0, actual=relu(-1.0))
 
 # %%
 from dataclasses import dataclass
@@ -663,6 +664,29 @@ nudge_tensor_towards_minimum(example_tensor, learning_rate=2)
 assert not t.allclose(example_tensor, t.tensor([1.1, 2.2, 3.3])), \
     f"It doesn't appear that nudge_tensor_towards_minimum actually modifies your tensor! Make sure that you are using -= and not x = x - ..."
 assert_tensors_within_epsilon(expected=t.tensor([0.9, 2.0, 3.1]), actual=example_tensor)
+
+# %%
+
+x = [1, 2, 3]
+
+def concat_a_list_v0(xs):
+    xs += [4]
+
+concat_a_list_v0(x)
+# Now x is [1, 2, 3, 4], because concat_a_list_v0 has mutated x through the
+# reference xs
+assert x == [1, 2, 3, 4]
+
+def concat_a_list_v1(xs):
+    xs = xs + [5]
+
+concat_a_list_v1(x)
+# x is still [1, 2, 3, 4], because concat_a_list_v1 has replaced the reference
+# xs with a new reference to [1, 2, 3, 4, 5] in the function body, but x remains
+# unchanged. Our new xs is also useless because it immediately becomes
+# inaccessible and eligible for garbage collection once we leave concat_a_list_v1
+assert x == [1, 2, 3, 4]
+# %%
 
 # Finally we put all this together in a function that performs one iteration of
 # tuning the weights of neural nets in training.
